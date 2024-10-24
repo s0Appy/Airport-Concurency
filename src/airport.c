@@ -1,4 +1,6 @@
 #include "airport.h"
+#include <cstddef>
+#include <string.h>
 
 /** This is the main file in which you should implement the airport server code.
  *  There are many functions here which are pre-written for you. You should read
@@ -145,7 +147,9 @@ void initialise_node(int airport_id, int num_gates, int listenfd) {
 
 void airport_node_loop(int listenfd) {
   /** TODO: implement the main server loop for an individual airport node here. */
-  while (1) {
-    /* ... */
+  int clientfd;
+  char buffer[1024];
+  while (clientfd = accept(listenfd, NULL, NULL) >= 0) {
+    memset(buffer, 0, sizeof(buffer));
   }
 }
