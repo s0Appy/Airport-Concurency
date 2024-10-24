@@ -100,11 +100,11 @@ time_info_t lookup_plane_in_airport(int plane_id) {
 int assign_in_gate(gate_t *gate, int plane_id, int start, int duration, int fuel) {
   int idx, end = start + duration;
   for (idx = start; idx <= (start + fuel) && (end < NUM_TIME_SLOTS); idx++) {
-    end = idx + duration;
     if (check_time_slots_free(gate, idx, end)) {
       add_plane_to_slots(gate, plane_id, idx, duration);
       return idx;
     }
+    end++;
   }
   return -1;
 }

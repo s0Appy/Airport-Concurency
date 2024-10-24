@@ -284,8 +284,8 @@ report:
       echo "Word Count: $var"
     - > 
       if (( $var > 300)); then
-          if (( $var > 1200)); then
-            echo "Your report should be < 4000 words!";
+          if (( $var > 4000)); then
+            echo "Your report should be <= 4000 words!";
             exit 1;
           else
             exit 0;
