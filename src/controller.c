@@ -1,13 +1,16 @@
 #include <errno.h>
 #include <pthread.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "airport.h"
+#include "network_utils.h"
 
 #define PORT_STRLEN 6
 #define DEFAULT_PORTNUM 1024
@@ -34,14 +37,68 @@ typedef struct controller_params_t {
 controller_params_t ATC_INFO;
 
 /** @brief The main server loop of the controller.
- *
+*
  *  @todo  Implement this function!
  */
 void controller_server_loop(void) {
   int listenfd = ATC_INFO.listenfd;
   /** TODO: implement this function! */
   while (1) {
-    /* ... */
+    /* listen to client request
+     * when valid request send to airport node if availible
+     * else create a airport instance initialise node
+     */
+
+    // wehere am i gonna listen from and where am i gonna find the request?
+    struct sockaddr_storage clientaddr;
+    socklen_t clientlen = sizeof(struct sockaddr_storage);
+    char buffer[MAXLINE];
+
+    // time to start listiening 
+    int connfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
+    if (connfd < 0) {
+      fprintf(stderr, "[Controller] Accept error: %s\n", strerror(errno));
+      continue;
+    }
+    
+    //need my io interface
+    rio_t rio;
+    rio_readinitb(&rio, connfd);
+    // read all the time (we studious like that)
+    while (1) {
+      size_t n = rio_readinitb($rio, buffer, MAXLINE);
+      if (0 >= n) break;
+
+      // setup to process request like maccas
+      char command[MAXLINE];
+      int args_n;
+      char *request = buffer;
+      int airport_n = -1; // we dont know which airport yet
+
+      // count!!!
+      args_n = sscanf(request, "%s", command);
+      // error conditon figure it out later
+      
+      // setup response
+      char response[MAXLINE];
+
+      // shedule the plane - most important comand
+      if (!strcmp(command, "SCHEDULE")) {
+        // get ingredients
+        int plane_id, earliest_time, duration, feul;
+        args_n = scanf(request, "%s %d %d %d %d %d", command, airport_n, plane_id, earliest_time, duration, feul);
+        // check all igredients availible
+        if (args_n != 6) {
+          snprintf(response, MAXLINE, "Error: Invalid request provided\n");
+          rio_writen(connfd, response, strlen(response));
+          // might need to reset response var as it might cause some bugs 
+          continue;
+        }
+      } else if (strcmp())
+       
+
+
+    }
   }
 }
 

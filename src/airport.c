@@ -1,5 +1,5 @@
 #include "airport.h"
-#include <cstddef>
+// #include <cstddef>
 #include <string.h>
 
 /** This is the main file in which you should implement the airport server code.
@@ -147,9 +147,14 @@ void initialise_node(int airport_id, int num_gates, int listenfd) {
 
 void airport_node_loop(int listenfd) {
   /** TODO: implement the main server loop for an individual airport node here. */
-  int clientfd;
-  char buffer[1024];
-  while (clientfd = accept(listenfd, NULL, NULL) >= 0) {
-    memset(buffer, 0, sizeof(buffer));
+  while (1) {
+    int connfd;
+    struct sockaddr_storage clientaddr;
+    socklen_t clientlen = sizeof(struct sockaddr_storage);
+    connfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
+    if (connfd < 0) {
+        fprintf(stderr, "[Airport %d] Accept error: %s\n", AIRPORT_ID, strerror(errno));
+        continue;
+    }
   }
 }
