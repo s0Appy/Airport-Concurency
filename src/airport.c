@@ -147,12 +147,15 @@ void initialise_node(int airport_id, int num_gates, int listenfd) {
 
 void airport_node_loop(int listenfd) {
   /** TODO: implement the main server loop for an individual airport node here. */
+
+  // always listen cus we dont know how to speak
   while (1) {
     int connfd;
-    struct sockaddr_storage clientaddr;
+    struct sockaddr_storage clientaddr; // store mamangers address
     socklen_t clientlen = sizeof(struct sockaddr_storage);
+     // we're lonely so we accept the first connection we recieve without security
     connfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
-    if (connfd < 0) {
+    if (connfd < 0) { // something happened and the connection was unable to be established
         fprintf(stderr, "[Airport %d] Accept error: %s\n", AIRPORT_ID, strerror(errno));
         continue;
     }

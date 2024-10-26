@@ -94,8 +94,12 @@ void controller_server_loop(void) {
           // might need to reset response var as it might cause some bugs 
           continue;
         }
-      } else if (strcmp())
+      } else if (!strcmp(command, "PLANE_STATUS")) {
+        // todo im tired asf rn
+      }
        
+
+      // evenutally make the burger
 
 
     }
