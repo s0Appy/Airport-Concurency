@@ -66,7 +66,7 @@ void controller_server_loop(void) {
     rio_readinitb(&rio, connfd);
     // read all the time (we studious like that)
     while (1) {
-      size_t n = rio_readinitb($rio, buffer, MAXLINE);
+      size_t n = rio_readlineb(&rio, buffer, MAXLINE);
       if (0 >= n) break;
 
       // setup to process request like maccas
@@ -96,10 +96,23 @@ void controller_server_loop(void) {
         }
       } else if (!strcmp(command, "PLANE_STATUS")) {
         // todo im tired asf rn
-      }
-       
+      } else if (!strcmp(command, "TIME_STATUS")) {
+        //
+      } else {
 
-      // evenutally make the burger
+      }
+      // check if valid airport
+      if (airport_n < 0 || ATC_INFO.num_airports <= airport_n) {
+        snprintf(response, MAXLINE,"Error: Airport %d does not exist\n", airport_n);
+        rio_writen(connfd, response, strlen(response));
+        continue;
+      }
+      // confirm order with customer
+      int port = ATC_INFO.airport_nodes[airport_n].port;
+
+
+
+      // pakage and give to uber eats guy
 
 
     }
