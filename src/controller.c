@@ -73,7 +73,7 @@ void controller_server_loop(void) {
       char command[MAXLINE];
       int args_n;
       char *request = buffer;
-      int airport_id = -1; // we dont know which airport yet
+      int airport_num = -1; // we dont know which airport yet
 
       // count!!!
       args_n = sscanf(request, "%s", command);
@@ -86,7 +86,7 @@ void controller_server_loop(void) {
       if (!strcmp(command, "SCHEDULE")) {
         // get ingredients
         int plane_id, earliest_time, duration, feul;
-        args_n = scanf(request, "%s %d %d %d %d %d", command, &airport_id, &plane_id, &earliest_time, &duration, &feul);
+        args_n = scanf(request, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &feul);
         // check all igredients availible
         if (args_n != 6) {
           snprintf(response, MAXLINE, "Error: Invalid request provided\n");
@@ -97,7 +97,7 @@ void controller_server_loop(void) {
       } else if (!strcmp(command, "PLANE_STATUS")) {
         // todo im tired asf rn
         int plane_id;
-        args_n = scanf(request, "%s %d %d", command, &airport_id, &plane_id);
+        args_n = scanf(request, "%s %d %d", command, &airport_num, &plane_id);
         if (args_n != 3) {
           snprintf(response, MAXLINE, "Error: Invalid request provided\n");
           rio_writen(connfd, response, strlen(response));
@@ -106,7 +106,7 @@ void controller_server_loop(void) {
 
       } else if (!strcmp(command, "TIME_STATUS")) {
         int gate_n, start_ind, durration;
-        args_n = sscanf(request, "%s %d %d %d %d", command, &airport_id, &gate_n, &start_ind, &durration);
+        args_n = sscanf(request, "%s %d %d %d %d", command, &airport_num, &gate_n, &start_ind, &durration);
         if (args_n != 5) {
           snprintf(response, MAXLINE,"Error: Invalid request provided\n");
           rio_writen(connfd, response, strlen(response));
@@ -118,28 +118,40 @@ void controller_server_loop(void) {
         continue;
       }
       // check if valid airport
-      if (airport_id < 0 || ATC_INFO.num_airports <= airport_id) {
-        snprintf(response, MAXLINE,"Error: Airport %d does not exist\n", airport_id);
+      if (airport_num < 0 || ATC_INFO.num_airports <= airport_num) {
+        snprintf(response, MAXLINE,"Error: Airport %d does not exist\n", airport_num);
         rio_writen(connfd, response, strlen(response));
         continue;
       }
       // confirm order with customer
-      int port = ATC_INFO.airport_nodes[airport_id].port;
+      int port = ATC_INFO.airport_nodes[airport_num].port;
       char air_port_str[PORT_STRLEN];
       snprintf(air_port_str, PORT_STRLEN, "%d", port);
 
       // confirm/establish address with customer
-      int airpfd = open_clientfd("localhost", air_port_str);
-      if (airpfd < 0) {
-        fprintf(stderr, "[Controller] failed to connect to airport %d\n", airport_id);
-        snprintf(response, MAXLINE, "Error: Could connect to airport %d\n", airport_id);
+      int airportfd = open_clientfd("localhost", air_port_str);
+      if (airportfd < 0) {
+        fprintf(stderr, "[Controller] failed to connect to airport %d\n", airport_num);
+        snprintf(response, MAXLINE, "Error: Could connect to airport %d\n", airport_num);
+        rio_writen(connfd, response, strlen(response));
+        continue;
       }
 
-
       // pakage and give to uber eats guy
+      rio_writen(airportfd, request, strlen(request));
 
-
+      // confirm response of deliver from delivery guy
+      rio_t airport_rio;
+      rio_readinitb(&airport_rio, airportfd);
+      while (1) {
+        ssize_t response_n = rio_readlineb(&airport_rio, response, MAXLINE);
+        if (response_n <= 0) break;
+        // forward response of delivery to happy customer
+        rio_writen(connfd, response, (size_t)response_n);
+      }
+      close(airportfd);
     }
+    close(connfd);
   }
 }
 
