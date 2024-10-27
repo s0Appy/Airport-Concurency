@@ -223,7 +223,7 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
 
 
 // i got tired of writing the same error messages
-void send_error(int connfd, const char *format, ...) {
+void send_response(int connfd, const char *format, ...) {
   char response[MAXLINE];
   va_list args;
   va_start(args, format);

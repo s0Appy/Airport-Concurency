@@ -185,7 +185,7 @@ void schedule_please(int connfd, char *buf) {
   int airport_num, plane_id, earliest_time, duration, fuel;
   int args_n = sscanf(buf, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
   if (args_n != 6) {
-    send_error(connfd, "Error: Invalid number of arguments for SCHEDULE\n");
+    send_response(connfd, "Error: Invalid number of arguments for SCHEDULE\n");
     return;
   }
   // if earliest time wrong
@@ -195,9 +195,14 @@ void schedule_please(int connfd, char *buf) {
   if (result.start_time >= 0) {
     char response[MAXLINE];
     int start_hour = IDX_TO_HOUR(result.start_time);
+    int start_min = IDX_TO_MINS(result.start_time);
+    int end_hour = IDX_TO_HOUR(result.end_time);
+    int end_min = IDX_TO_HOUR(result.end_time);
+    send_response(connfd, "SCHEDULED %d at GATE 5D: %02d:%02d-%02d:%02d\n",
+                         plane_id, result.gate_number, start_hour, start_min, end_hour, end_min);
     // etc
   } else {
-    send_error(connfd, "Error: Cannot schedule %d\n", plane_id);
+    send_response(connfd, "Error: Cannot schedule %d\n", plane_id);
   }
 
 }

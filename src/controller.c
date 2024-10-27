@@ -39,7 +39,7 @@ controller_params_t ATC_INFO;
 static void forward_request_to_airport(int connfd, int airport_num, char *request) {
   // check if valid airport
   if (airport_num < 0 || airport_num >= ATC_INFO.num_airports) {
-    send_error(connfd, "Error: Airport %d does not exist\n", airport_num);
+    send_response(connfd, "Error: Airport %d does not exist\n", airport_num);
     return;
   }
 
@@ -52,7 +52,7 @@ static void forward_request_to_airport(int connfd, int airport_num, char *reques
   int airportfd = open_clientfd("localhost", airport_port_str);
   if (airportfd < 0) {
     fprintf(stderr, "[Controller] Failed to connect to airport %d\n", airport_num);
-    send_error(connfd, "Error: Could not connect to airport %d\n", airport_num);
+    send_response(connfd, "Error: Could not connect to airport %d\n", airport_num);
     return;
   }
 
@@ -79,7 +79,7 @@ void handle_schedule(int connfd, char *request) {
   int args_n = sscanf(request, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
   // check all ingredients are availible
   if (args_n != 6) {
-    send_error(connfd, "Error: Invalid request provided\n");
+    send_response(connfd, "Error: Invalid request provided\n");
     return;
   }
   forward_request_to_airport(connfd, airport_num, request);
@@ -93,7 +93,7 @@ static void handle_plane_status(int connfd, char *request) {
   int args_n = sscanf(request, "%s %d %d", command, &airport_num, &plane_id);
   // make sure delivery plane request is valid
   if (args_n != 3) {
-    send_error(connfd, "Error: Invalid request provided\n");
+    send_response(connfd, "Error: Invalid request provided\n");
     return;
   }
   forward_request_to_airport(connfd, airport_num, request);
@@ -105,7 +105,7 @@ static void handle_time_status(int connfd, char *request) {
   int airport_num, gate_num, start_idx, duration;
   int args_n = sscanf(request, "%s %d %d %d %d", command, &airport_num, &gate_num, &start_idx, &duration);
   if (args_n != 5) {
-    send_error(connfd, "Error: Invalid request provided\n");
+    send_response(connfd, "Error: Invalid request provided\n");
     return;
   }
   forward_request_to_airport(connfd, airport_num, request);
@@ -151,7 +151,7 @@ void controller_server_loop(void) {
       args_n = sscanf(buffer, "%s", command);
       // error conditon figure it out later
       if (args_n < 1) {
-        send_error(connfd, "Error: Invalid request provided\n");
+        send_response(connfd, "Error: Invalid request provided\n");
         continue;
       }
       // self explanitory | might have to change `!` to `== 0`
@@ -162,7 +162,7 @@ void controller_server_loop(void) {
       } else if (!strcmp(command, "TIME_STATUS")) {
         handle_time_status(connfd, buffer);
       } else {
-        send_error(connfd, "Error: Invalid request provided\n");
+        send_response(connfd, "Error: Invalid request provided\n");
       }
     }
     close(connfd);

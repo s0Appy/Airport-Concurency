@@ -39,6 +39,6 @@ void rio_readinitb(rio_t *rp, int fd);
 ssize_t rio_readnb(rio_t *rp, void *usrbuf, size_t n);
 ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen);
 ssize_t rio_writen(int fd, char *usrbuf, size_t n);
-void send_error(int connfd, const char *format, ...);
+void send_response(int connfd, const char *format, ...);
 
 #endif
