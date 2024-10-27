@@ -1,6 +1,9 @@
 #include "airport.h"
-// #include <cstddef>
+#include "network_utils.h"
+#include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
+#include <stddef.h>
 
 /** This is the main file in which you should implement the airport server code.
  *  There are many functions here which are pre-written for you. You should read
@@ -148,7 +151,7 @@ void initialise_node(int airport_id, int num_gates, int listenfd) {
 void airport_node_loop(int listenfd) {
   /** TODO: implement the main server loop for an individual airport node here. */
 
-  // always listen cus we dont know how to speak
+// always listen cus we dont know how to speak
   while (1) {
     int connfd;
     struct sockaddr_storage clientaddr; // store mamangers address
@@ -159,5 +162,44 @@ void airport_node_loop(int listenfd) {
         fprintf(stderr, "[Airport %d] Accept error: %s\n", AIRPORT_ID, strerror(errno));
         continue;
     }
+    // put connection into queue 
+
   }
 }
+
+
+// queuer function
+
+
+
+
+// de-queuer function use threads or something.
+
+
+// time to EAT
+
+// helperssss cus i aint reeading all that yfeel
+
+void schedule_please(int connfd, char *buf) {
+  char command[MAXLINE];
+  int airport_num, plane_id, earliest_time, duration, fuel;
+  int args_n = sscanf(buf, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
+  if (args_n != 6) {
+    send_error(connfd, "Error: Invalid number of arguments for SCHEDULE\n");
+    return;
+  }
+  // if earliest time wrong
+  // if duration wrong
+
+  time_info_t result = schedule_plane(plane_id, earliest_time, duration, fuel);
+  if (result.start_time >= 0) {
+    char response[MAXLINE];
+    int start_hour = IDX_TO_HOUR(result.start_time);
+    // etc
+  } else {
+    send_error(connfd, "Error: Cannot schedule %d\n", plane_id);
+  }
+
+}
+
+

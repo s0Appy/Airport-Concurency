@@ -1,4 +1,5 @@
 #include "network_utils.h"
+#include <stdarg.h>
 
 void gai_error(int code, char *msg) { /* getaddrinfo-style error */
   fprintf(stderr, "%s: %s\n", msg, gai_strerror(code));
@@ -218,4 +219,15 @@ ssize_t rio_readlineb(rio_t *rp, void *usrbuf, size_t maxlen) {
   }
   *bufp = 0;
   return n - 1;
+}
+
+
+// i got tired of writing the same error messages
+void send_error(int connfd, const char *format, ...) {
+  char response[MAXLINE];
+  va_list args;
+  va_start(args, format);
+  vsnprintf(response, MAXLINE, format, args);
+  va_end(args);
+  rio_writen(connfd , response, strlen(response)); 
 }
