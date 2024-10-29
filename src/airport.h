@@ -2,6 +2,7 @@
 #define AIRPORT_HEADER
 
 #include "network_utils.h"
+#include <bits/pthreadtypes.h>
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
@@ -50,6 +51,8 @@ typedef struct time_slot_t time_slot_t;
  *  information when implementing multithreading. */
 struct gate_t {
   time_slot_t time_slots[NUM_TIME_SLOTS];
+  // add for multithreading.
+  pthread_mutex_t lock;
 };
 
 typedef struct gate_t gate_t;

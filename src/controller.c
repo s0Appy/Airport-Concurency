@@ -76,7 +76,8 @@ void handle_schedule(int connfd, char *request) {
   char command[MAXLINE];
   // get ingredients
   int airport_num, plane_id, earliest_time, duration, fuel;
-  int args_n = sscanf(request, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
+  int args_n = sscanf(request, "%s %d %d %d %d %d",
+                      command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
   // check all ingredients are availible
   if (args_n != 6) {
     send_response(connfd, "Error: Invalid request provided\n");
@@ -90,7 +91,8 @@ static void handle_plane_status(int connfd, char *request) {
   char command[MAXLINE];
   // whch plane?????? 
   int airport_num, plane_id;
-  int args_n = sscanf(request, "%s %d %d", command, &airport_num, &plane_id);
+  int args_n = sscanf(request, "%s %d %d",
+                      command, &airport_num, &plane_id);
   // make sure delivery plane request is valid
   if (args_n != 3) {
     send_response(connfd, "Error: Invalid request provided\n");
@@ -103,7 +105,8 @@ static void handle_plane_status(int connfd, char *request) {
 static void handle_time_status(int connfd, char *request) {
   char command[MAXLINE];
   int airport_num, gate_num, start_idx, duration;
-  int args_n = sscanf(request, "%s %d %d %d %d", command, &airport_num, &gate_num, &start_idx, &duration);
+  int args_n = sscanf(request, "%s %d %d %d %d",
+                      command, &airport_num, &gate_num, &start_idx, &duration);
   if (args_n != 5) {
     send_response(connfd, "Error: Invalid request provided\n");
     return;
@@ -139,7 +142,7 @@ void controller_server_loop(void) {
     // need my io interface
     rio_t rio;
     rio_readinitb(&rio, connfd);
-    // read all the time (we studious like that)
+    // listen and read all the time (we studious like that)
     while (1) {
       size_t n = rio_readlineb(&rio, buffer, MAXLINE);
       if (0 >= n) break;

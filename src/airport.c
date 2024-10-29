@@ -1,9 +1,11 @@
 #include "airport.h"
 #include "network_utils.h"
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stddef.h>
+#include <unistd.h>
 
 /** This is the main file in which you should implement the airport server code.
  *  There are many functions here which are pre-written for you. You should read
@@ -21,6 +23,14 @@ static int AIRPORT_ID = -1;
 
 /* This will be set by the `initialise_node` function. */
 static airport_t *AIRPORT_DATA = NULL;
+
+// create structure in this file just for queing connections
+
+
+// queuer function
+
+
+// de-queuer function use threads or something.
 
 gate_t *get_gate_by_idx(int gate_idx) {
   if ((gate_idx) < 0 || (gate_idx > AIRPORT_DATA->num_gates))
@@ -148,6 +158,136 @@ void initialise_node(int airport_id, int num_gates, int listenfd) {
   airport_node_loop(listenfd);
 }
 
+
+// time to EAT
+
+// helperssss cus i aint reeading all that yfeel
+
+void schedule_please(int connfd, char *buf) {
+  char command[MAXLINE];
+  int airport_num, plane_id, earliest_time, duration, fuel;
+  int args_n = sscanf(buf, "%s %d %d %d %d %d",
+                      command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
+  if (args_n !=6) {
+    send_response(connfd, "Error: Invalid number of arguments for SCHEDULE\n");
+    return;
+  }
+  // if earliest time wrong TODO
+  // if duration wrong TODO
+
+  time_info_t result = schedule_plane(plane_id, earliest_time, duration, fuel);
+  if (result.start_time >= 0) {
+    char response[MAXLINE];
+    int start_hour = IDX_TO_HOUR(result.start_time);
+    int start_min = IDX_TO_MINS(result.start_time);
+    int end_hour = IDX_TO_HOUR(result.end_time);
+    int end_min = IDX_TO_HOUR(result.end_time);
+    send_response(connfd, "SCHEDULED %d at GATE 5D: %02d:%02d-%02d:%02d\n",
+                         plane_id, result.gate_number, start_hour, start_min, end_hour, end_min);
+  } else {
+    send_response(connfd, "Error: Cannot schedule %d\n", plane_id);
+  }
+}
+
+void plane_status(int connfd, char *buf) {
+  char command[MAXLINE];
+  int airport_num, plane_id;
+  int args_n = sscanf(buf, "%s %d %d", command, &airport_num, &plane_id);
+  // look that shi up
+  time_info_t result = lookup_plane_in_airport(plane_id);
+  if (result.start_time >= 0) {
+    int start_hour = IDX_TO_HOUR(result.start_time);
+    int start_min = IDX_TO_MINS(result.start_time);
+    int end_hour = IDX_TO_HOUR(result.end_time);
+    int end_min = IDX_TO_MINS(result.end_time);
+    send_response(connfd, "PLANE %d scheduled at GATE %d: %02d:%02d-%02d:%02d\n",
+                  plane_id, result.gate_number, start_hour, start_min, end_hour, end_min);
+  } else {
+    send_response(connfd, "PLANE %d not scheduled at airport %d\n", plane_id, AIRPORT_ID);
+  }
+}
+
+void time_status(int connfd, char *buf) {
+  char command[MAXLINE];
+  int airport_num, gate_num, start_idx, duration;
+  int args_n = sscanf(buf, "%s %d %d %d %d",
+                      command, &airport_num, &gate_num, &start_idx, &duration);
+  // TSA
+  // too many or too litte lugage
+  if (args_n != 5) {
+    send_response(connfd, "Error: Invalid number of arguments for TIME_STATUS\n");
+    return;
+  } 
+  if (gate_num < 0 || gate_num >= AIRPORT_DATA->num_gates) {
+    send_response(connfd, "Error: Invalid 'gate' value (%d)\n", gate_num);
+    return;
+  }
+  if (start_idx < 0 || start_idx >= NUM_TIME_SLOTS) {
+    send_response(connfd, "Error: Invalid 'start_idx' value (%d)\n", start_idx);
+    return;
+  }
+  if (duration <= 0 || start_idx + duration >= NUM_TIME_SLOTS) {
+    send_response(connfd, "Error: Invalid 'duration' value (%d)\n", duration);
+    return;
+  }
+
+    // procces
+  gate_t *gate = get_gate_by_idx(gate_num);
+  if (gate == NULL) {
+    send_response(connfd, "Error: Invalid 'gate' value (%d)\n", gate_num);
+    return;
+  }
+  int end_idx = start_idx + duration;
+  if (start_idx < 0 || end_idx >= NUM_TIME_SLOTS) {
+    send_response(connfd, "Error: Invalid 'start_idx' or 'duration\n");
+    return;
+  }
+  // lock thread
+  pthread_mutex_lock(&gate->lock);
+  int i = start_idx;
+  while (i <= end_idx) {
+    time_slot_t *time_slot = get_time_slot_by_idx(gate, i);
+    char status = time_slot->status ? 'A' : 'F';
+    int flight_id = time_slot->status ? time_slot->plane_id : 0;
+    int hour = IDX_TO_HOUR(i);
+    int min = IDX_TO_MINS(i);
+    send_response(connfd, "AIRPORT %d GATE %d %02d:%02d: %c - %d\n",
+                  AIRPORT_ID, gate_num, hour, min, status, flight_id);
+    pthread_mutex_unlock(&gate->lock);
+  }
+}
+
+void process_commands(int connfd) {
+  char buf[MAXLINE];
+  size_t n;
+  rio_t rio;
+  rio_readinitb(&rio, connfd);
+  while ((n = rio_readlineb(&rio, buf, MAXLINE)) != 0) {
+    char command[MAXLINE];
+    int args_n = sscanf(buf, "%s", command);
+
+    if (args_n < 1) {
+        send_response(connfd, "Error: Invalid request provided\n");
+        close(connfd);
+        return;
+    }
+
+    if (strcmp(command, "SCHEDULE") == 0) {
+      schedule_please(connfd, buf);
+    } else if (strcmp(command, "PLANE_STATUS") == 0) {
+      plane_status(connfd, buf);
+    } else if (strcmp(command, "TIME_STATUS") == 0) {
+      time_status(connfd, buf);
+    } else {
+      send_response(connfd, "Error: Invalid request provided\n");
+    }
+  }
+  close(connfd);
+}
+
+void airport_thread(void *arg) {
+}
+
 void airport_node_loop(int listenfd) {
   /** TODO: implement the main server loop for an individual airport node here. */
 
@@ -162,49 +302,12 @@ void airport_node_loop(int listenfd) {
         fprintf(stderr, "[Airport %d] Accept error: %s\n", AIRPORT_ID, strerror(errno));
         continue;
     }
-    // put connection into queue 
-
+    // put connection into queue ie run the threads
+    
+    // process comands in loop for testing
+    
+    process_commands(connfd);
   }
-}
-
-
-// queuer function
-
-
-
-
-// de-queuer function use threads or something.
-
-
-// time to EAT
-
-// helperssss cus i aint reeading all that yfeel
-
-void schedule_please(int connfd, char *buf) {
-  char command[MAXLINE];
-  int airport_num, plane_id, earliest_time, duration, fuel;
-  int args_n = sscanf(buf, "%s %d %d %d %d %d", command, &airport_num, &plane_id, &earliest_time, &duration, &fuel);
-  if (args_n != 6) {
-    send_response(connfd, "Error: Invalid number of arguments for SCHEDULE\n");
-    return;
-  }
-  // if earliest time wrong
-  // if duration wrong
-
-  time_info_t result = schedule_plane(plane_id, earliest_time, duration, fuel);
-  if (result.start_time >= 0) {
-    char response[MAXLINE];
-    int start_hour = IDX_TO_HOUR(result.start_time);
-    int start_min = IDX_TO_MINS(result.start_time);
-    int end_hour = IDX_TO_HOUR(result.end_time);
-    int end_min = IDX_TO_HOUR(result.end_time);
-    send_response(connfd, "SCHEDULED %d at GATE 5D: %02d:%02d-%02d:%02d\n",
-                         plane_id, result.gate_number, start_hour, start_min, end_hour, end_min);
-    // etc
-  } else {
-    send_response(connfd, "Error: Cannot schedule %d\n", plane_id);
-  }
-
 }
 
 
