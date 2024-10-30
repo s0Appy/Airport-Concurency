@@ -64,6 +64,7 @@ typedef struct gate_t gate_t;
 struct airport_t {
   int num_gates;  // Number of gates in this airport
   gate_t gates[]; // Array of each gate.
+  // might need to add mutex for threading.
 };
 
 /** This structure is used to represent a (gate index, start time, end time)

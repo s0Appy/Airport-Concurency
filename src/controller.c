@@ -50,7 +50,7 @@ static void forward_request_to_airport(int connfd, int airport_num, char *reques
 
   // confirm/establish address with customer
   int airportfd = open_clientfd("localhost", airport_port_str);
-  if (airportfd < 0) {
+  if (airportfd < 0 || airport_num >= ATC_INFO.num_airports) {
     fprintf(stderr, "[Controller] Failed to connect to airport %d\n", airport_num);
     send_response(connfd, "Error: Could not connect to airport %d\n", airport_num);
     return;
@@ -336,6 +336,6 @@ int main(int argc, char *argv[]) {
   if (parse_args(argc, argv) < 0)
     return 1;
   initialise_network();
-  controller_server_loop();
+//  controller_server_loop();
   return 0;
 }
